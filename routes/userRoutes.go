@@ -2,17 +2,28 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	controller "github.com/miscOS/ddns-bridge/controllers"
+	"github.com/miscOS/ddns-bridge/controllers"
 	"github.com/miscOS/ddns-bridge/middleware"
 )
 
-func UserRoutes(r *gin.Engine) {
-	r.POST("users/signup", controller.Signup)
-	r.POST("users/login", controller.Login)
+func Routes(r *gin.Engine) {
+	// Public user routes
+	rg := r.Group("/api/user")
+	{
+		rg.POST("signup", controllers.Signup)
+		rg.POST("login", controllers.Login)
+	}
 }
 
-func SecureUserRoutes(r *gin.Engine) {
-	r.Use(middleware.UserAuthenticate)
-	r.GET("/users/data", controller.UserData)
-	//r.GET("/users/:user_id", controller.GetUser())
+func SecureRoutes(r *gin.Engine) {
+	// Secure user routes
+	rg := r.Group("/api/user")
+	{
+		rg.Use(middleware.UserAuthenticate)
+		rg.GET("/info", controllers.UserInfo)
+
+		// Hook routes
+		rg.POST("/hook", controllers.CreateWebhook)
+		rg.DELETE("/hook", controllers.DeleteWebhook)
+	}
 }

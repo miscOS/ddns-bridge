@@ -9,14 +9,17 @@ import (
 
 func main() {
 
+	// Generate a secret key
+	//helpers.GenerateSecret()
+
 	// Initialize the database
 	db.Init()
 
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
 
-	routes.UserRoutes(router)
-	routes.SecureUserRoutes(router)
+	routes.Routes(router)
+	routes.SecureRoutes(router)
 
 	router.Run()
 }

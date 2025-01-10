@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -21,17 +20,15 @@ func UserAuthenticate(c *gin.Context) {
 
 	token = strings.Replace(token, "Bearer ", "", 1)
 
-	claims, err := helpers.VerifyToken(token)
+	claims, err := helpers.VerifyTokenAndMapClaims(token, helpers.GetSecret())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 		c.Abort()
 		return
 	}
 
-	fmt.Printf("Token verified successfully. Claims: %+v\\n", claims)
-
-	if uid, ok := claims["uid"]; ok {
-		c.Set("uid", uid)
+	if username, ok := claims["sub"]; ok {
+		c.Set("username", username)
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 		c.Abort()
