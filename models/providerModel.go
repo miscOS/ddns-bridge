@@ -4,11 +4,12 @@ import (
 	"time"
 )
 
-type Webhook struct {
+type Provider struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
-	UserID    uint      `json:"user_id" gorm:"not null" validate:"required"`
+	WebhookID uint      `json:"webhook_id" gorm:"not null" validate:"required"`
 	Name      string    `json:"name" gorm:"size:255"`
-	Token     string    `json:"token" gorm:"size:255"`
+	Provider  string    `json:"provider" gorm:"size:255" validate:"required"`
+	Settings  string    `json:"settings"`
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }

@@ -81,26 +81,28 @@ func Login(c *gin.Context) {
 	//c.Redirect(http.StatusSeeOther, "/")
 }
 
-func UserInfo(c *gin.Context) {
+func GetUser(c *gin.Context) {
 
-	user, ok := GetUser(c)
-	if !ok {
+	user, err := fetchUserFromContext(c)
+	if err != nil {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user_id": user.ID, "username": user.Username, "email": user.Email, "created_at": user.CreatedAt, "updated_at": user.UpdatedAt})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    user,
+	})
 }
 
-// GetUser is a helper function that gets the user from the context
-func GetUser(c *gin.Context) (user models.User, ok bool) {
-	user.Username = c.GetString("username")
+func fetchUserFromContext(c *gin.Context) (user models.User, err error) {
+	username := c.GetString("username")
 
-	var dbUser models.User
-	if err := db.GetDB().First(&dbUser, &user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user data"})
-		c.Abort()
-		return dbUser, false
+	if err := db.GetDB().Where("username = ?", username).First(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return user, err
 	}
-
-	return dbUser, true
+	return user, nil
 }

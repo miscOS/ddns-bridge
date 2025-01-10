@@ -30,7 +30,7 @@ func Init() {
 	}
 
 	// Migrate the schema
-	db.AutoMigrate(&models.User{}, &models.Webhook{})
+	db.AutoMigrate(&models.User{}, &models.Webhook{}, &models.Provider{})
 }
 
 func GetDB() *gorm.DB {

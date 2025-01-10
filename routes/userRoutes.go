@@ -15,15 +15,26 @@ func Routes(r *gin.Engine) {
 	}
 }
 
-func SecureRoutes(r *gin.Engine) {
+func ApiRoutes(r *gin.Engine) {
+
+	r.GET("/update", controllers.Update)
+
 	// Secure user routes
-	rg := r.Group("/api/user")
+	rg := r.Group("/api")
 	{
 		rg.Use(middleware.UserAuthenticate)
-		rg.GET("/info", controllers.UserInfo)
+		rg.GET("/user", controllers.GetUser)
 
-		// Hook routes
-		rg.POST("/hook", controllers.CreateWebhook)
-		rg.DELETE("/hook", controllers.DeleteWebhook)
+		// Webhook routes
+		rg.GET("/webhook", controllers.GetWebhooks)
+		rg.GET("/webhook/:wid", controllers.GetWebhook)
+		rg.POST("/webhook", controllers.CreateWebhook)
+		rg.DELETE("/webhook/:wid", controllers.DeleteWebhook)
+
+		// Provider routes
+		rg.GET("/webhook/:wid/provider", controllers.GetProviders)
+		rg.GET("/webhook/:wid/provider/:pid", controllers.GetProvider)
+		rg.POST("/webhook/:wid/provider", controllers.CreateProvider)
+		rg.DELETE("/webhook/:wid/provider/:pid", controllers.DeleteProvider)
 	}
 }

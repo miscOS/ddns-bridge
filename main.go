@@ -19,7 +19,7 @@ func main() {
 	router.SetTrustedProxies(nil)
 
 	routes.Routes(router)
-	routes.SecureRoutes(router)
+	routes.ApiRoutes(router)
 
 	router.Run()
 }
