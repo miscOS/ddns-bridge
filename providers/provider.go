@@ -1,14 +1,20 @@
 package DNSProvider
 
 import (
+	"net/netip"
 	"reflect"
 
 	"github.com/pkg/errors"
 )
 
+type DNSParams struct {
+	IPv4 netip.Addr
+	IPv6 netip.Addr
+}
+
 type DNSProvider interface {
 	Setup(interface{}) error
-	Update() error
+	Update(params *DNSParams) error
 }
 
 // GetDNSProvider returns a DNSProvider instance based on the provided name.

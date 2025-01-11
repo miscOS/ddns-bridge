@@ -3,6 +3,7 @@ package controllers
 import (
 	"log"
 	"net/http"
+	"net/netip"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/miscOS/ddns-bridge/database"
@@ -12,6 +13,36 @@ import (
 
 func Update(c *gin.Context) {
 
+	// Parse the IP addresses
+	var ipv4 netip.Addr
+	var ipv6 netip.Addr
+	var err error
+
+	if c.Query("ipv4") != "" {
+		ipv4, err = netip.ParseAddr(c.Query("ipv4"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+	}
+
+	if c.Query("ipv6") != "" {
+		ipv6, err = netip.ParseAddr(c.Query("ipv6"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+	}
+
+	params := &DNSProviders.DNSParams{IPv4: ipv4, IPv6: ipv6}
+
+	// Find the webhook
 	webhook := &models.Webhook{Token: c.Query("token")}
 
 	if err := db.GetDB().First(&webhook, webhook).Error; err != nil {
@@ -38,7 +69,7 @@ func Update(c *gin.Context) {
 			continue
 		}
 		s.Setup(provider.Settings)
-		s.Update()
+		s.Update(params)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
