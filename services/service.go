@@ -7,14 +7,20 @@ import (
 	"github.com/pkg/errors"
 )
 
-type DNSParams struct {
+type DNSValues struct {
 	IPv4 netip.Addr
 	IPv6 netip.Addr
 }
 
+type DNSResult struct {
+	Success bool   `json:"success"`
+	Domain  string `json:"domain"`
+	Record  string `json:"record"`
+}
+
 type DNSService interface {
 	Setup(configObject string) error
-	Update(params *DNSParams) error
+	Update(params *DNSValues) ([]DNSResult, error)
 }
 
 // GetDNSService returns a DNSProvider instance based on the provided name.
@@ -40,6 +46,7 @@ func GetDNSService(name string) (DNSService, error) {
 // the DNS provider structs based on the provider name.
 func getDNSServiceMap() map[string]reflect.Type {
 	return map[string]reflect.Type{
-		"dummy": reflect.TypeOf((*dummyDNS)(nil)).Elem(),
+		"dummy":      reflect.TypeOf((*dummyDNS)(nil)).Elem(),
+		"cloudflare": reflect.TypeOf((*cloudflareDNS)(nil)).Elem(),
 	}
 }

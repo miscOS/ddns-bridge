@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"net/netip"
 	"time"
@@ -40,7 +41,7 @@ func Update(c *gin.Context) {
 		}
 	}
 
-	params := &dns.DNSParams{IPv4: ipv4, IPv6: ipv6}
+	params := &dns.DNSValues{IPv4: ipv4, IPv6: ipv6}
 
 	// Find the webhook
 	webhook := &models.Webhook{Token: c.Query("token")}
@@ -64,6 +65,8 @@ func Update(c *gin.Context) {
 		return
 	}
 
+	var results []dns.DNSResult
+
 	for _, provider := range providers {
 		s, err := dns.GetDNSService(provider.Service)
 		if err != nil {
@@ -72,11 +75,12 @@ func Update(c *gin.Context) {
 		if err := s.Setup(provider.ServiceParameters); err != nil {
 			continue
 		}
-		s.Update(params)
+		res, err := s.Update(params)
+		if err != nil {
+			log.Printf("Error updating DNS for provider %s: %s", provider.Service, err.Error())
+		}
+		results = append(results, res...)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "webhook invoked",
-	})
+	c.JSON(http.StatusOK, results)
 }
