@@ -1,15 +1,18 @@
-package DNSProvider
+package services
 
-import "log"
+import (
+	"encoding/json"
+	"log"
+)
 
 type dummyDNS struct {
 	Name string
 }
 
-func (d *dummyDNS) Setup(config interface{}) error {
-	d.Name = config.(string)
-	log.Printf("Configuring dummy provider with name: %s", d.Name)
-	return nil
+func (d *dummyDNS) Setup(config string) error {
+
+	err := json.Unmarshal([]byte(config), &d)
+	return err
 }
 
 func (d *dummyDNS) Update(params *DNSParams) error {

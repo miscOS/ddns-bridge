@@ -1,14 +1,14 @@
 package controllers
 
 import (
-	"log"
 	"net/http"
 	"net/netip"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/miscOS/ddns-bridge/database"
 	"github.com/miscOS/ddns-bridge/models"
-	DNSProviders "github.com/miscOS/ddns-bridge/providers"
+	dns "github.com/miscOS/ddns-bridge/services"
 )
 
 func Update(c *gin.Context) {
@@ -40,7 +40,7 @@ func Update(c *gin.Context) {
 		}
 	}
 
-	params := &DNSProviders.DNSParams{IPv4: ipv4, IPv6: ipv6}
+	params := &dns.DNSParams{IPv4: ipv4, IPv6: ipv6}
 
 	// Find the webhook
 	webhook := &models.Webhook{Token: c.Query("token")}
@@ -53,7 +53,9 @@ func Update(c *gin.Context) {
 		return
 	}
 
-	providers, err := fetchProvidersByWebhook(webhook)
+	db.GetDB().Model(&webhook).UpdateColumn("invoked_at", time.Now())
+
+	providers, err := fetchTasksByWebhook(webhook)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -63,12 +65,13 @@ func Update(c *gin.Context) {
 	}
 
 	for _, provider := range providers {
-		s, err := DNSProviders.GetDNSProvider(provider.Provider)
+		s, err := dns.GetDNSService(provider.Service)
 		if err != nil {
-			log.Println(err)
 			continue
 		}
-		s.Setup(provider.Settings)
+		if err := s.Setup(provider.ServiceParameters); err != nil {
+			continue
+		}
 		s.Update(params)
 	}
 

@@ -111,7 +111,7 @@ func fetchWebhookByContext(c *gin.Context) (webhook models.Webhook, err error) {
 		return webhook, err
 	}
 
-	webhookID, err := strconv.ParseUint(c.Param("wid"), 10, 64)
+	webhookID, err := strconv.ParseUint(c.Param("webhook_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,

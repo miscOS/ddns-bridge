@@ -27,14 +27,14 @@ func ApiRoutes(r *gin.Engine) {
 
 		// Webhook routes
 		rg.GET("/webhook", controllers.GetWebhooks)
-		rg.GET("/webhook/:wid", controllers.GetWebhook)
+		rg.GET("/webhook/:webhook_id", controllers.GetWebhook)
 		rg.POST("/webhook", controllers.CreateWebhook)
-		rg.DELETE("/webhook/:wid", controllers.DeleteWebhook)
+		rg.DELETE("/webhook/:webhook_id", controllers.DeleteWebhook)
 
-		// Provider routes
-		rg.GET("/webhook/:wid/provider", controllers.GetProviders)
-		rg.GET("/webhook/:wid/provider/:pid", controllers.GetProvider)
-		rg.POST("/webhook/:wid/provider", controllers.CreateProvider)
-		rg.DELETE("/webhook/:wid/provider/:pid", controllers.DeleteProvider)
+		// Task routes
+		rg.GET("/webhook/:webhook_id/tasks", controllers.GetTasks)
+		rg.GET("/webhook/:webhook_id/task/:task_id", controllers.GetTask)
+		rg.POST("/webhook/:webhook_id/task", controllers.CreateTask)
+		rg.DELETE("/webhook/:webhook_id/task/:task_id", controllers.DeleteTask)
 	}
 }
