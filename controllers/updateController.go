@@ -4,46 +4,16 @@ import (
 	"log"
 	"net/http"
 	"net/netip"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/miscOS/ddns-bridge/database"
+	"github.com/miscOS/ddns-bridge/helpers"
 	"github.com/miscOS/ddns-bridge/models"
-	dns "github.com/miscOS/ddns-bridge/services"
 )
 
 func Update(c *gin.Context) {
 
-	// Parse the IP addresses
-	var ipv4 netip.Addr
-	var ipv6 netip.Addr
-	var err error
-
-	if c.Query("ipv4") != "" {
-		ipv4, err = netip.ParseAddr(c.Query("ipv4"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   err.Error(),
-			})
-			return
-		}
-	}
-
-	if c.Query("ipv6") != "" {
-		ipv6, err = netip.ParseAddr(c.Query("ipv6"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"success": false,
-				"error":   err.Error(),
-			})
-			return
-		}
-	}
-
-	params := &dns.DNSValues{IPv4: ipv4, IPv6: ipv6}
-
-	// Find the webhook
+	values := &models.UpdaetValue{}
 	webhook := &models.Webhook{Token: c.Query("token")}
 
 	if err := db.GetDB().First(&webhook, webhook).Error; err != nil {
@@ -54,7 +24,33 @@ func Update(c *gin.Context) {
 		return
 	}
 
-	db.GetDB().Model(&webhook).UpdateColumn("invoked_at", time.Now())
+	if c.Query("ipv4") != "" {
+		ipv4, err := netip.ParseAddr(c.Query("ipv4"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+		values.IPv4 = ipv4
+		webhook.IPv4 = ipv4.String()
+	}
+
+	if c.Query("ipv6") != "" {
+		ipv6, err := netip.ParseAddr(c.Query("ipv6"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+		values.IPv6 = ipv6
+		webhook.IPv6 = ipv6.String()
+	}
+
+	db.GetDB().Save(&webhook)
 
 	providers, err := fetchTasksByWebhook(webhook)
 	if err != nil {
@@ -65,22 +61,24 @@ func Update(c *gin.Context) {
 		return
 	}
 
-	var results []dns.DNSResult
+	var updateResult []models.UpdateResult
 
 	for _, provider := range providers {
-		s, err := dns.GetDNSService(provider.Service)
-		if err != nil {
-			continue
+
+		if s := helpers.GetService(provider.Service); s != nil {
+
+			if err := s.Setup(provider.ServiceParameters); err != nil {
+				continue
+			}
+
+			res, err := s.Update(values)
+			if err != nil {
+				log.Printf("Error updating DNS for provider %s: %s", provider.Service, err.Error())
+			}
+			updateResult = append(updateResult, res...)
+
 		}
-		if err := s.Setup(provider.ServiceParameters); err != nil {
-			continue
-		}
-		res, err := s.Update(params)
-		if err != nil {
-			log.Printf("Error updating DNS for provider %s: %s", provider.Service, err.Error())
-		}
-		results = append(results, res...)
 	}
 
-	c.JSON(http.StatusOK, results)
+	c.JSON(http.StatusOK, updateResult)
 }

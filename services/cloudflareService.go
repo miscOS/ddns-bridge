@@ -6,9 +6,10 @@ import (
 	"log"
 
 	"github.com/imroc/req/v3"
+	"github.com/miscOS/ddns-bridge/models"
 )
 
-type cloudflareDNS struct {
+type CloudflareDNS struct {
 	Domain    string `json:"domain"`
 	Subdomain string `json:"subdomain"`
 	Token     string `json:"token"`
@@ -58,7 +59,7 @@ type cf_Error_Response struct {
 	Errors  []cf_Error `json:"errors"`
 }
 
-func (s *cloudflareDNS) Setup(config string) error {
+func (s *CloudflareDNS) Setup(config string) error {
 
 	if err := json.Unmarshal([]byte(config), &s); err != nil {
 		log.Printf("Error unmarshalling config: %s", err)
@@ -70,7 +71,7 @@ func (s *cloudflareDNS) Setup(config string) error {
 	return nil
 }
 
-func (s *cloudflareDNS) Update(params *DNSValues) (result []DNSResult, err error) {
+func (s *CloudflareDNS) Update(value *models.UpdaetValue) (result []models.UpdateResult, err error) {
 
 	zones, err := s.getZone()
 	if err != nil {
@@ -82,19 +83,19 @@ func (s *cloudflareDNS) Update(params *DNSValues) (result []DNSResult, err error
 		return result, err
 	}
 
-	updates, err := s.updateDNS(dns, params)
+	updates, err := s.updateDNS(dns, value)
 	if err != nil {
 		return result, err
 	}
 
 	for _, r := range updates {
-		result = append(result, DNSResult{Success: r.Success, Domain: r.Result.Name, Record: r.Result.Type})
+		result = append(result, models.UpdateResult{Success: r.Success, Domain: r.Result.Name, Record: r.Result.Type})
 	}
 
 	return result, nil
 }
 
-func (s *cloudflareDNS) getZone() (response cf_Zone_Response, err error) {
+func (s *CloudflareDNS) getZone() (response cf_Zone_Response, err error) {
 
 	var errorResponse cf_Error_Response
 
@@ -117,7 +118,7 @@ func (s *cloudflareDNS) getZone() (response cf_Zone_Response, err error) {
 	}
 }
 
-func (s *cloudflareDNS) getDNS(zones cf_Zone_Response) (response cf_DNS_Response, err error) {
+func (s *CloudflareDNS) getDNS(zones cf_Zone_Response) (response cf_DNS_Response, err error) {
 
 	var errorResponse cf_Error_Response
 	var name string
@@ -153,7 +154,7 @@ func (s *cloudflareDNS) getDNS(zones cf_Zone_Response) (response cf_DNS_Response
 	return response, errors.New("no DNS records found")
 }
 
-func (s *cloudflareDNS) updateDNS(dns cf_DNS_Response, v *DNSValues) (responses []cf_DNS_Update_Response, err error) {
+func (s *CloudflareDNS) updateDNS(dns cf_DNS_Response, v *models.UpdaetValue) (responses []cf_DNS_Update_Response, err error) {
 
 	for _, record := range dns.Result {
 
