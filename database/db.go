@@ -1,6 +1,9 @@
 package database
 
 import (
+	"os"
+
+	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
@@ -11,20 +14,20 @@ var db *gorm.DB
 
 func Init() {
 
-	db_user := "db_user"
-	db_password := "db_pass"
-	db_name := "test_db"
-	db_host := "10.0.11.171"
-	db_port := "3306"
-
-	dsn := db_user + ":" + db_password + "@tcp(" + db_host + ":" + db_port + ")/" + db_name + "?parseTime=true"
-
-	/*TODO:
-	- Use sqlite if no db_host is provided
-	*/
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASS")
+	dbName := os.Getenv("DB_NAME")
+	dbHost := os.Getenv("DB_HOST")
 
 	var err error
-	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{TranslateError: true})
+
+	if dbUser == "" || dbPass == "" || dbName == "" || dbHost == "" {
+		db, err = gorm.Open(sqlite.Open("./data/db.sqlite"), &gorm.Config{})
+	} else {
+		dsn := dbUser + ":" + dbPass + "@tcp(" + dbHost + ")/" + dbName + "?parseTime=true"
+		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{TranslateError: true})
+	}
+
 	if err != nil {
 		panic("failed to connect database")
 	}

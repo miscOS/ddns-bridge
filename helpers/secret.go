@@ -3,13 +3,14 @@ package helpers
 import (
 	"crypto/hmac"
 	"crypto/sha512"
+	"os"
 
 	"math/rand"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-var secretKey = []byte("unsecure-default-key")
+var secretKey = []byte("")
 
 func RandomString(length int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
@@ -21,7 +22,7 @@ func RandomString(length int) string {
 	return string(b)
 }
 
-func GenerateSecret() {
+func generateSecret() {
 
 	randomString := RandomString(32)
 	hmacKey := hmac.New(sha512.New, []byte(randomString))
@@ -30,6 +31,14 @@ func GenerateSecret() {
 }
 
 func GetSecret() []byte {
+
+	if len(secretKey) == 0 {
+		if os.Getenv("SECRET_KEY") != "" {
+			secretKey = []byte(os.Getenv("SECRET_KEY"))
+		} else {
+			generateSecret()
+		}
+	}
 	return secretKey
 }
 

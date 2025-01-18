@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 
 	db "github.com/miscOS/ddns-bridge/database"
 	routes "github.com/miscOS/ddns-bridge/routes"
@@ -9,8 +10,8 @@ import (
 
 func main() {
 
-	// Generate a secret key
-	//helpers.GenerateSecret()
+	// Load the environment variables
+	godotenv.Load()
 
 	// Initialize the database
 	db.Init()
