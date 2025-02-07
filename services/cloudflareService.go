@@ -83,7 +83,7 @@ func (s *CloudflareDNS) Update(value *models.UpdaetValue) (result []models.Updat
 		return result, err
 	}
 
-	updates, err := s.updateDNS(dns, value)
+	updates, err := s.updateDNS(zones, dns, value)
 	if err != nil {
 		return result, err
 	}
@@ -154,7 +154,9 @@ func (s *CloudflareDNS) getDNS(zones cf_Zone_Response) (response cf_DNS_Response
 	return response, errors.New("no DNS records found")
 }
 
-func (s *CloudflareDNS) updateDNS(dns cf_DNS_Response, v *models.UpdaetValue) (responses []cf_DNS_Update_Response, err error) {
+func (s *CloudflareDNS) updateDNS(zones cf_Zone_Response, dns cf_DNS_Response, v *models.UpdaetValue) (responses []cf_DNS_Update_Response, err error) {
+
+	zoneID := zones.Result[0].ID // Quick and dirty fix for now, since dns records dont have zone id anymore
 
 	for _, record := range dns.Result {
 
@@ -174,7 +176,7 @@ func (s *CloudflareDNS) updateDNS(dns cf_DNS_Response, v *models.UpdaetValue) (r
 			SetHeader("Content-Type", "application/json").
 			SetBearerAuthToken(s.Token).
 			SetBody(body).
-			SetPathParam("zone_id", record.ZoneID).
+			SetPathParam("zone_id", zoneID).
 			SetPathParam("dns_id", record.ID).
 			SetSuccessResult(&response).
 			SetErrorResult(&errorResponse).
