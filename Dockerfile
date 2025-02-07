@@ -12,7 +12,8 @@ RUN go build -o ddns-bridge .
 # Runtime
 FROM debian:bookworm-slim
 
-RUN apt install ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates
+RUN update-ca-certificates
 
 WORKDIR /app
 COPY --from=builder /app/ddns-bridge .
