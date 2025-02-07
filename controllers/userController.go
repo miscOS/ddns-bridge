@@ -3,6 +3,7 @@ package controllers
 import (
 	"errors"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -13,6 +14,15 @@ import (
 )
 
 func Signup(c *gin.Context) {
+
+	// Check if the register key is set and if it is correct
+	registerKey := os.Getenv("REGISTER_KEY")
+	if registerKey != "" {
+		if c.Query("key") != registerKey {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid key"})
+			return
+		}
+	}
 
 	var user models.User
 	if err := c.BindJSON(&user); err != nil {
