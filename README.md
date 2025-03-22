@@ -90,7 +90,7 @@ Removes webhook with the specified `webhook`.
 Parameters:
 | Name | Required |  Type  | Description |
 | ----:|:--------:|:------:|-----------------|
-| `webhook`| required | string | - |
+| `webhook`| required | string | ID of the `webhook` |
 
 ### Tasks
 #### `GET` /api/webhook/{webhook}/task/{task}
@@ -111,6 +111,13 @@ Parameters:
 | Name | Required |  Type  | Description |
 | ----:|:--------:|:------:|-----------------|
 | `webhook`| required | string | ID of the `webhook` |
+
+Body (JSON):
+| Name | Required |  Type  | Description |
+| ----:|:--------:|:------:|-----------------|
+| `name`| required | string | Unique name of the new `task` |
+| `service`| required | string | Service provider identifier |
+| `service_params`| required | object | Service specific parameters |
 
 #### `DELETE` /api/webhook/{webhook}/task/{task}
 *Requires Token Header*  

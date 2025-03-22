@@ -1,18 +1,19 @@
 package services
 
 import (
-	"encoding/json"
-
 	"github.com/miscOS/ddns-bridge/models"
+	"github.com/mitchellh/mapstructure"
 )
 
 type DummyDNS struct {
 }
 
-func (d *DummyDNS) Setup(config string) error {
+func (d *DummyDNS) Setup(params map[string]interface{}) error {
 
-	err := json.Unmarshal([]byte(config), &d)
-	return err
+	if err := mapstructure.Decode(params, d); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (d *DummyDNS) Update(v *models.UpdaetValue) (result []models.UpdateResult, err error) {

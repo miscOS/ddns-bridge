@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	db "github.com/miscOS/ddns-bridge/database"
-	"github.com/miscOS/ddns-bridge/helpers"
 	"github.com/miscOS/ddns-bridge/models"
+	"github.com/miscOS/ddns-bridge/services"
 )
 
 func Update(c *gin.Context) {
@@ -65,9 +65,9 @@ func Update(c *gin.Context) {
 
 	for _, provider := range providers {
 
-		if s := helpers.GetService(provider.Service); s != nil {
+		if s := services.GetService(provider.Service); s != nil {
 
-			if err := s.Setup(provider.ServiceParameters); err != nil {
+			if err := s.Setup(provider.ServiceParams); err != nil {
 				continue
 			}
 

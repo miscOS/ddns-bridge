@@ -22,7 +22,7 @@ func CreateWebhook(c *gin.Context) {
 	}
 
 	var webhook models.Webhook
-	if err := c.BindJSON(&webhook); err != nil {
+	if err := c.ShouldBindJSON(&webhook); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),

@@ -18,7 +18,7 @@ func CreateTask(c *gin.Context) {
 	}
 
 	task := models.Task{}
-	if err := c.BindJSON(&task); err != nil {
+	if err := c.ShouldBindJSON(&task); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
 			"error":   err.Error(),

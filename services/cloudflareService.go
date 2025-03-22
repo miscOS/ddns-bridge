@@ -1,20 +1,19 @@
 package services
 
 import (
-	"encoding/json"
 	"errors"
-	"log"
 
 	"github.com/imroc/req/v3"
 	"github.com/miscOS/ddns-bridge/models"
+	"github.com/mitchellh/mapstructure"
 )
 
 type CloudflareDNS struct {
+	client    *req.Client
+	url       string
 	Domain    string `json:"domain"`
 	Subdomain string `json:"subdomain"`
 	Token     string `json:"token"`
-	client    *req.Client
-	url       string
 }
 
 type cf_Body struct {
@@ -59,10 +58,9 @@ type cf_Error_Response struct {
 	Errors  []cf_Error `json:"errors"`
 }
 
-func (s *CloudflareDNS) Setup(config string) error {
+func (s *CloudflareDNS) Setup(params map[string]interface{}) error {
 
-	if err := json.Unmarshal([]byte(config), &s); err != nil {
-		log.Printf("Error unmarshalling config: %s", err)
+	if err := mapstructure.Decode(params, s); err != nil {
 		return err
 	}
 
