@@ -1,5 +1,5 @@
 # Builder
-FROM golang:1.24.0-bookworm AS builder
+FROM golang:1.26.1-trixie AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY . .
 RUN go build -o ddns-bridge .
 
 # Runtime
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y ca-certificates
 RUN update-ca-certificates

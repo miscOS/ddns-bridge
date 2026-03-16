@@ -48,11 +48,17 @@ func main() {
 	}
 
 	// OIDC authentication
-	authenticator, err := auth.NewOIDCAuthenticator(os.Getenv("OIDC_ISSUER"), os.Getenv("OIDC_CLIENT_ID"))
-	if err != nil {
-		log.Fatalf("Failed to create OIDC authenticator: %s", err)
+	if os.Getenv("DISABLE_OIDC_AUTH") == "true" {
+		log.Println("OIDC authentication is disabled")
+	} else {
+		log.Println("Registering OIDC authenticator")
+
+		authenticator, err := auth.NewOIDCAuthenticator(os.Getenv("OIDC_ISSUER"), os.Getenv("OIDC_CLIENT_ID"))
+		if err != nil {
+			log.Fatalf("Failed to create OIDC authenticator: %s", err)
+		}
+		auth.Register(authenticator)
 	}
-	auth.Register(authenticator)
 
 	// Add routes
 	routes.RegisterRoutes(router)
