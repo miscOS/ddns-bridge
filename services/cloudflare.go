@@ -8,12 +8,18 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-type CloudflareDNS struct {
-	client    *req.Client
-	url       string
-	Domain    string `json:"domain"`
-	Subdomain string `json:"subdomain"`
-	Token     string `json:"token"`
+type cloudflareDNS struct {
+	ID          string           `service:"name"`
+	Description string           `service:"description"`
+	Params      cloudflareParams `service:"parameters"`
+	client      *req.Client
+	url         string
+}
+
+type cloudflareParams struct {
+	Domain    string `name:"domain" type:"string" req:"true" desc:"The domain to update."`
+	Subdomain string `name:"subdomain" type:"string" req:"false" desc:"The subdomain to update. If not provided, the root domain will be updated."`
+	Token     string `name:"token" type:"string" req:"true" desc:"API Token with permissions to edit DNS records."`
 }
 
 type cf_Body struct {
@@ -58,52 +64,60 @@ type cf_Error_Response struct {
 	Errors  []cf_Error `json:"errors"`
 }
 
-func (s *CloudflareDNS) Setup(params map[string]interface{}) error {
-
-	if err := mapstructure.Decode(params, s); err != nil {
-		return err
+func NewCloudflareDNS() *cloudflareDNS {
+	return &cloudflareDNS{
+		ID:          "cloudflare",
+		Description: "A Cloudflare DNS service for updating A and AAAA records.",
+		client:      req.C().SetUserAgent("miscOS/ddnsbridge-cloudflare"),
+		url:         "https://api.cloudflare.com/client/v4",
 	}
-
-	s.client = req.C().SetUserAgent("miscOS/ddnsbridge-cloudflare")
-	s.url = "https://api.cloudflare.com/client/v4"
-	return nil
 }
 
-func (s *CloudflareDNS) Update(value *models.UpdaetValue) (result []models.UpdateResult, err error) {
+func (d *cloudflareDNS) GetID() string {
+	return d.ID
+}
 
-	zones, err := s.getZone()
+func (d *cloudflareDNS) Init(params map[string]interface{}) error {
+
+	err := mapstructure.Decode(params, &d.Params)
+	return err
+}
+
+func (d *cloudflareDNS) Update(value *models.UpdateRequest) (result []models.UpdateResult, err error) {
+
+	zones, err := d.getZone()
 	if err != nil {
 		return result, err
 	}
 
-	dns, err := s.getDNS(zones)
+	dns, err := d.getDNS(zones)
 	if err != nil {
 		return result, err
 	}
 
-	updates, err := s.updateDNS(zones, dns, value)
+	updates, err := d.updateDNS(zones, dns, value)
 	if err != nil {
 		return result, err
 	}
 
-	for _, r := range updates {
-		result = append(result, models.UpdateResult{Success: r.Success, Domain: r.Result.Name, Record: r.Result.Type})
+	for _, u := range updates {
+		result = append(result, models.UpdateResult{Success: u.Success, Task: u.Result.Name, Message: u.Result.Type})
 	}
 
 	return result, nil
 }
 
-func (s *CloudflareDNS) getZone() (response cf_Zone_Response, err error) {
+func (d *cloudflareDNS) getZone() (response cf_Zone_Response, err error) {
 
 	var errorResponse cf_Error_Response
 
-	_, err = s.client.R().
+	_, err = d.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetBearerAuthToken(s.Token).
-		SetPathParam("name", s.Domain).
+		SetBearerAuthToken(d.Params.Token).
+		SetPathParam("name", d.Params.Domain).
 		SetSuccessResult(&response).
 		SetErrorResult(&errorResponse).
-		Get(s.url + "/zones?name={name}&status=active")
+		Get(d.url + "/zones?name={name}&status=active")
 
 	if err != nil {
 		return response, err
@@ -116,27 +130,27 @@ func (s *CloudflareDNS) getZone() (response cf_Zone_Response, err error) {
 	}
 }
 
-func (s *CloudflareDNS) getDNS(zones cf_Zone_Response) (response cf_DNS_Response, err error) {
+func (d *cloudflareDNS) getDNS(zones cf_Zone_Response) (response cf_DNS_Response, err error) {
 
 	var errorResponse cf_Error_Response
 	var name string
 
-	if s.Subdomain == "" {
-		name = s.Domain
+	if d.Params.Subdomain == "" {
+		name = d.Params.Domain
 	} else {
-		name = s.Subdomain + "." + s.Domain
+		name = d.Params.Subdomain + "." + d.Params.Domain
 	}
 
 	for _, zone := range zones.Result {
 
-		_, err = s.client.R().
+		_, err = d.client.R().
 			SetHeader("Content-Type", "application/json").
-			SetBearerAuthToken(s.Token).
+			SetBearerAuthToken(d.Params.Token).
 			SetPathParam("zone_id", zone.ID).
 			SetPathParam("name", name).
 			SetSuccessResult(&response).
 			SetErrorResult(&errorResponse).
-			Get(s.url + "/zones/{zone_id}/dns_records?name={name}")
+			Get(d.url + "/zones/{zone_id}/dns_records?name={name}")
 
 		if err != nil {
 			return response, err
@@ -152,7 +166,7 @@ func (s *CloudflareDNS) getDNS(zones cf_Zone_Response) (response cf_DNS_Response
 	return response, errors.New("no DNS records found")
 }
 
-func (s *CloudflareDNS) updateDNS(zones cf_Zone_Response, dns cf_DNS_Response, v *models.UpdaetValue) (responses []cf_DNS_Update_Response, err error) {
+func (d *cloudflareDNS) updateDNS(zones cf_Zone_Response, dns cf_DNS_Response, r *models.UpdateRequest) (responses []cf_DNS_Update_Response, err error) {
 
 	zoneID := zones.Result[0].ID // Quick and dirty fix for now, since dns records dont have zone id anymore
 
@@ -162,23 +176,23 @@ func (s *CloudflareDNS) updateDNS(zones cf_Zone_Response, dns cf_DNS_Response, v
 		var errorResponse cf_Error_Response
 		var body cf_Body
 
-		if record.Type == "A" && v.IPv4.Is4() {
-			body.Content = v.IPv4.String()
-		} else if record.Type == "AAAA" && v.IPv6.Is6() {
-			body.Content = v.IPv6.String()
+		if record.Type == "A" && r.IPv4.Is4() {
+			body.Content = r.IPv4.String()
+		} else if record.Type == "AAAA" && r.IPv6.Is6() {
+			body.Content = r.IPv6.String()
 		} else {
 			continue
 		}
 
-		_, err = s.client.R().
+		_, err = d.client.R().
 			SetHeader("Content-Type", "application/json").
-			SetBearerAuthToken(s.Token).
+			SetBearerAuthToken(d.Params.Token).
 			SetBody(body).
 			SetPathParam("zone_id", zoneID).
 			SetPathParam("dns_id", record.ID).
 			SetSuccessResult(&response).
 			SetErrorResult(&errorResponse).
-			Patch(s.url + "/zones/{zone_id}/dns_records/{dns_id}")
+			Patch(d.url + "/zones/{zone_id}/dns_records/{dns_id}")
 
 		if err != nil {
 			return responses, err

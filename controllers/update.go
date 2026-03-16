@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"log"
 	"net/http"
 	"net/netip"
 
@@ -13,7 +12,7 @@ import (
 
 func Update(c *gin.Context) {
 
-	values := &models.UpdaetValue{}
+	values := &models.UpdateRequest{}
 	webhook := &models.Webhook{Token: c.Query("token")}
 
 	if err := db.GetDB().First(&webhook, webhook).Error; err != nil {
@@ -52,7 +51,7 @@ func Update(c *gin.Context) {
 
 	db.GetDB().Save(&webhook)
 
-	providers, err := fetchTasksByWebhook(webhook)
+	tasks, err := getTasksByWebhook(webhook)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
@@ -61,24 +60,31 @@ func Update(c *gin.Context) {
 		return
 	}
 
-	var updateResult []models.UpdateResult
+	var result []models.UpdateResult
 
-	for _, provider := range providers {
+	for _, task := range *tasks {
 
-		if s := services.GetService(provider.Service); s != nil {
+		service, err := services.Get(task.Service)
+		if err != nil {
+			result = append(result, models.UpdateResult{Success: false, Message: "Service not found: " + task.Service})
+			continue
+		}
 
-			if err := s.Setup(provider.ServiceParams); err != nil {
-				continue
-			}
+		if err := service.Init(task.ServiceParams); err != nil {
+			result = append(result, models.UpdateResult{Success: false, Message: "Error initializing service: " + err.Error()})
+			continue
+		}
 
-			res, err := s.Update(values)
-			if err != nil {
-				log.Printf("Error updating DNS for provider %s: %s", provider.Service, err.Error())
-			}
-			updateResult = append(updateResult, res...)
+		res, err := service.Update(values)
+		if err != nil {
+			result = append(result, models.UpdateResult{Success: false, Message: "Error updating service: " + err.Error()})
+		}
 
+		for _, r := range res {
+			r.Task = task.Name
+			result = append(result, r)
 		}
 	}
 
-	c.JSON(http.StatusOK, updateResult)
+	c.JSON(http.StatusOK, result)
 }
